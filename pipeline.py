@@ -1,6 +1,6 @@
 import os
 
-available_gpus = [1, 2, 3, 4, 5]
+available_gpus = [2, 3, 4, 5, 6]
 os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(map(str, available_gpus))
 
 
@@ -27,7 +27,7 @@ nn_model = NNsight(model)
 
 # %%
 harm_prompts = get_dataset("harmbench_test")
-harmless_prompts = get_dataset("alpaca")
+harmless_prompts = get_dataset("alpaca")[:256]
 
 lens = [len(tokenize(prompt, tokenizer)[0]) for prompt in harm_prompts]
 print(f"Number of prompts: {len(lens)}")
@@ -38,7 +38,7 @@ print(f"Max length: {max(lens)} tokens")
 prompt_tok_arr = arr_tokenize(harm_prompts, tokenizer)
 
 if os.path.exists("tmp/refusal_vector.pt") and os.path.exists("tmp/layer.txt"):
-    best_refusal_vector = torch.load("tmp/refusal_vector.pt")
+    best_refusal_vector = torch.load("tmp/refusal_vector.pt", weights_only=True)
     best_layer = int(open("tmp/layer.txt", "r").read())
 else:
     harmbench_train_activations = get_activations(harm_prompts, nn_model, file_name="harmbench_train")
@@ -91,17 +91,18 @@ print("harmbench_test_ablated.shape:", train_ablated.shape)
 
 length = 16
 
-ablated_outputs = from_completion_tensor(train_ablated, tokenizer, length=length, file_name="harmbench_train")
-unablated_outputs = from_completion_tensor(completions_tensor, tokenizer, length=length, file_name="harmbench_train")
+train_ablated_outputs = from_completion_tensor(train_ablated, tokenizer, length=length, file_name="harmbench_train", ablated=True)
+train_unablated_outputs = from_completion_tensor(completions_tensor, tokenizer, length=length, file_name="harmbench_train")
 
-advbench = get_dataset("advbench")[:256]
-harmbench_val = get_dataset("harmbench_val")[:256]
-jailbreak = get_dataset("jailbreakbench")[:256] 
-malicious = get_dataset("malicious_instruct")[:256]
-strongreject = get_dataset("strongreject")[:256]
-tdc2023 = get_dataset("tdc2023")[:256]
+advbench = get_dataset("advbench")[:64]
+harmbench_val = get_dataset("harmbench_val")[:64]
+jailbreak = get_dataset("jailbreakbench")[:64] 
+malicious = get_dataset("malicious_instruct")[:64]
+strongreject = get_dataset("strongreject")[:64]
+tdc2023 = get_dataset("tdc2023")[:64]
 
 names = ["advbench", "harmbench_val", "jailbreak", "malicious", "strongreject", "tdc2023"]
+full_names = ["AdvBench", "HarmBench Val", "Jailbreak", "Malicious", "StrongReject", "Tdc2023"]
 prompt_dataset = [advbench, harmbench_val, jailbreak, malicious, strongreject, tdc2023]
 prompt_tok_arrs = [arr_tokenize(dataset, tokenizer) for dataset in prompt_dataset]
 
@@ -111,9 +112,9 @@ test_ablated_outputs = []
 test_unablated_outputs = []
 for index, prompt_tok_arr in enumerate(prompt_tok_arrs):
     file_name = names[index]
-    test_ablated_tensors.append(ablated_completions(prompt_dataset[index], best_refusal_vector, best_layer, nn_model, batch_size=4, length=length, file_name=file_name))
+    test_ablated_tensors.append(ablated_completions(prompt_tok_arr, best_refusal_vector, best_layer, nn_model, batch_size=4, length=length, file_name=file_name))
     test_unablated_tensors.append(get_completions(prompt_dataset[index], model, tokenizer, batch_size=4, length=length, file_name=file_name))
-    test_ablated_outputs.append(from_completion_tensor(test_ablated_tensors[index], tokenizer, length=length, file_name=file_name))
+    test_ablated_outputs.append(from_completion_tensor(test_ablated_tensors[index], tokenizer, length=length, file_name=file_name, ablated=True))
     test_unablated_outputs.append(from_completion_tensor(test_unablated_tensors[index], tokenizer, length=length, file_name=file_name))
 
 first_ablated_toks = torch.cat([test_ablated_tensors[index][:, -16] for index in range(len(test_ablated_tensors))])
@@ -124,17 +125,24 @@ display_tokens(first_ablated_toks, tokenizer)
 print("Unablated first tokens:")
 display_tokens(first_unablated_toks, tokenizer)
 
-print("Number refused for ablated outputs:", sum([refused(output) for output in ablated_outputs]))
-print("Number refused for unablated outputs:", sum([refused(output) for output in unablated_outputs]))
+print("Number refused for train ablated outputs:", sum([refused(output) for output in train_ablated_outputs]))
+print("Number refused for train unablated outputs:", sum([refused(output) for output in train_unablated_outputs]))
 
 for index, (ablated_output, unablated_output) in enumerate(zip(test_ablated_outputs, test_unablated_outputs)):
     print(f"Dataset {names[index]}")
-    print("Number refused for ablated outputs:", sum([refused(output) for output in ablated_outputs]))
-    print("Number refused for unablated outputs:", sum([refused(output) for output in unablated_outputs]))
+    print("Number refused for ablated outputs:", sum([refused(output) for output in ablated_output]))
+    print("Number refused for unablated outputs:", sum([refused(output) for output in unablated_output]))
+
+harmless_test_prompts = get_dataset("alpaca")[256:320]
+harmless_test_tok_arr = arr_tokenize(harmless_test_prompts, tokenizer)
+harmless_test_completions = get_completions(harmless_test_prompts, model, tokenizer, batch_size=4, length=length, file_name="harmless_test")
+harmless_test_activated_completions = activated_completions(harmless_test_tok_arr, best_refusal_vector, best_layer, nn_model, batch_size=4, length=length, file_name="harmless_test")
 
 unique_tokens, counts = torch.unique(completions_tensor[:, -16], return_counts=True)
 token_distribution = dict(zip(unique_tokens.cpu().tolist(), counts.cpu().tolist()))
 sorted_distribution = dict(sorted(token_distribution.items(), key=lambda x: x[1], reverse=True))
 print("Token distribution:", sorted_distribution)
 
-print("GENERATE FIGURESSSS")
+plot_refusal_scores(full_names, test_ablated_outputs, test_unablated_outputs)
+plot_first_tok_dist(first_ablated_toks, first_unablated_toks, tokenizer, prompt_type="Harmful")
+plot_first_tok_dist(harmless_test_activated_completions, harmless_test_completions, tokenizer, prompt_type="Harmless")

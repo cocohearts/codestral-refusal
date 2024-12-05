@@ -56,6 +56,36 @@ def ablated_completions(prompt_toks, refusal_vector, layer_ind, nn_model, batch_
 
     return ablated_completions
 
+def activated_completions(prompt_toks, refusal_vector, layer_ind, nn_model, batch_size=8, length=16, file_name=None):
+    if file_name is not None and os.path.exists(f"tmp/{file_name}_activated_completions.pt"):
+        return torch.load(f"tmp/{file_name}_activated_completions.pt", map_location="cuda:1", weights_only=True)
+
+    dataloader = DataLoader(prompt_toks, batch_size=batch_size, shuffle=False)
+    activated_completions = torch.zeros(prompt_toks.shape[0], prompt_toks.shape[1] + length).to("cuda:1").to(int)
+    num_processed = 0
+    for batch in tqdm(dataloader, desc=f"Activated completions for {file_name}"):
+        activated_completions[num_processed:num_processed+batch.shape[0], :prompt_toks.shape[1]] = batch
+
+        for tok_ind in range(length):
+            cur_batch = activated_completions[num_processed:num_processed+batch.shape[0], :prompt_toks.shape[1]+tok_ind]
+
+            with nn_model.trace(cur_batch):
+                l_output_before = nn_model.backbone.layers[layer_ind].output.clone().save()
+                norms = l_output_before.norm(dim=-1)[:, :, None]
+                l_output_after = l_output_before - refusal_vector * norms.repeat(1, 1, 4096)
+                nn_model.backbone.layers[layer_ind].output = l_output_after
+                out = nn_model.output.save()
+            new_toks = torch.argmax(out.logits[:, -1], dim=-1)
+            activated_completions[num_processed:num_processed+batch.shape[0], prompt_toks.shape[1]+tok_ind] = new_toks
+
+        num_processed += batch.shape[0]
+    
+    if file_name is not None:
+        torch.save(activated_completions, f"tmp/{file_name}_activated_completions.pt")
+
+    return activated_completions
+
+
 def all_ablation_logits(prompt_tok_arr, normalized_vectors, batch_size=4):
     # grabs all first-token logits for all possible refusal vectors
     if not os.path.exists("tmp/all_logits.pt"):

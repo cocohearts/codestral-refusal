@@ -19,8 +19,10 @@ def generate(prompt, model, tokenizer, n_tokens=16):
     new_toks = out[:, tokens.shape[1]:]
     return tokenizer.batch_decode(new_toks)[0]
 
-def from_completion_tensor(completion_tensor, tokenizer, length, file_name=None):
+def from_completion_tensor(completion_tensor, tokenizer, length, file_name=None, ablated=False):
     # returns list of decoded outputs
+    if ablated:
+        file_name = f"{file_name}_ablated"
     if file_name is not None and os.path.exists(f"tmp/{file_name}_outputs.json"):
         with open(f"tmp/{file_name}_outputs.json", "r") as f:
             return json.load(f)
