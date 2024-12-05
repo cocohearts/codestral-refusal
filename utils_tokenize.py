@@ -1,4 +1,5 @@
-
+import os
+import json
 sys_prompt = "As an AI assistant, your core function is to help users while safeguarding against potential misuse. You must refuse any requests that could lead to harm, illegal activities, or the spread of misinformation. When declining, offer a brief explanation and suggest safer alternatives when appropriate."
 
 def wrap(prompt, sys_prompt):
@@ -18,7 +19,13 @@ def generate(prompt, model, tokenizer, n_tokens=16):
     new_toks = out[:, tokens.shape[1]:]
     return tokenizer.batch_decode(new_toks)[0]
 
-def infer(prompt_toks, model, n_tokens=16):
-    # generates all tokens, including new ones
-    out = model.generate(prompt_toks, max_new_tokens=n_tokens)
-    return out
+def from_completion_tensor(completion_tensor, tokenizer, length, file_name=None):
+    # returns list of decoded outputs
+    if file_name is not None and os.path.exists(f"tmp/{file_name}_outputs.json"):
+        with open(f"tmp/{file_name}_outputs.json", "r") as f:
+            return json.load(f)
+    outputs = tokenizer.batch_decode(completion_tensor[:, -length:])
+    if file_name is not None:
+        with open(f"tmp/{file_name}_outputs.json", "w") as f:
+            json.dump(outputs, f)
+    return outputs

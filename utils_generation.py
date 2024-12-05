@@ -5,19 +5,19 @@ from torch.utils.data import DataLoader
 from einops import einsum
 from tqdm import tqdm
 
-def get_completions(prompts, length=16, batch_size=8, file_name=None):
+def get_completions(prompts, model, tokenizer, length=16, batch_size=8, file_name=None):
     if file_name is not None and os.path.exists(f"tmp/{file_name}_completions.pt"):
         return torch.load(f"tmp/{file_name}_completions.pt", map_location="cuda:1", weights_only=True)
 
-    prompt_tok_arr = arr_tokenize(prompts)
+    prompt_tok_arr = arr_tokenize(prompts, tokenizer)
     prompt_len = prompt_tok_arr.shape[1]
     print(f"Doing inference on {len(prompts)} prompts")
 
     completions = torch.zeros(prompt_tok_arr.shape[0], prompt_tok_arr.shape[1] + length).to("cuda:1")
     dataloader = DataLoader(prompt_tok_arr, batch_size=batch_size, shuffle=False)
     num_processed = 0
-    for batch in tqdm(dataloader, desc="Inference batches"):
-        completions[num_processed:num_processed+batch.shape[0]] = infer(batch, length).to("cuda:1")
+    for batch in tqdm(dataloader, desc=f"Unablated completions for {file_name}"):
+        completions[num_processed:num_processed+batch.shape[0]] = model.generate(batch, max_new_tokens=length).to("cuda:1")
         num_processed += batch.shape[0]
 
     completions = completions.to(int)
@@ -34,7 +34,7 @@ def ablated_completions(prompt_toks, refusal_vector, layer_ind, nn_model, batch_
     dataloader = DataLoader(prompt_toks, batch_size=batch_size, shuffle=False)
     ablated_completions = torch.zeros(prompt_toks.shape[0], prompt_toks.shape[1] + length).to("cuda:1").to(int)
     num_processed = 0
-    for batch in tqdm(dataloader, desc="Processing batches"):
+    for batch in tqdm(dataloader, desc=f"Ablated completions for {file_name}"):
         ablated_completions[num_processed:num_processed+batch.shape[0], :prompt_toks.shape[1]] = batch
 
         for tok_ind in range(length):
@@ -56,10 +56,11 @@ def ablated_completions(prompt_toks, refusal_vector, layer_ind, nn_model, batch_
 
     return ablated_completions
 
-def get_ablation_logits(prompt_tok_arr, normalized_vectors, batch_size=4):
+def all_ablation_logits(prompt_tok_arr, normalized_vectors, batch_size=4):
+    # grabs all first-token logits for all possible refusal vectors
     if not os.path.exists("tmp/all_logits.pt"):
         cutoff = 0.8
-        n_layers = int(0.8 * 64)
+        n_layers = int(cutoff * 64)
         all_logits = torch.zeros(n_layers, normalized_vectors.shape[1], len(prompt_tok_arr), 32768)
         for layer_ind in tqdm(range(n_layers), desc="Processing layers"):
             all_logits[layer_ind] = ablation_logits(prompt_tok_arr, normalized_vectors[layer_ind], layer_ind, batch_size)
@@ -88,7 +89,10 @@ def ablation_logits(prompt_toks, refusal_vectors, layer_ind, nn_model, batch_siz
             num_processed += batch.shape[0]
     return logits
 
-def unablated_logits(prompt_toks, nn_model, batch_size=8):
+def unablated_logits(prompt_toks, nn_model, batch_size=8, file_name=None):
+    if file_name is not None and os.path.exists(f"tmp/{file_name}_unablated_logits.pt"):
+        return torch.load(f"tmp/{file_name}_unablated_logits.pt", map_location="cuda:2", weights_only=True)
+
     dataloader = DataLoader(prompt_toks, batch_size=batch_size, shuffle=False)
     logits = torch.zeros(len(prompt_toks), 32768).to("cuda:2")
     num_processed = 0
@@ -97,5 +101,8 @@ def unablated_logits(prompt_toks, nn_model, batch_size=8):
             out = nn_model.output.save()
         logits[num_processed:num_processed+batch.shape[0]] = out.logits[:, -1].to("cuda:2")
         num_processed += batch.shape[0]
-    return logits
 
+    if file_name is not None:
+        torch.save(logits, f"tmp/{file_name}_unablated_logits.pt")
+
+    return logits

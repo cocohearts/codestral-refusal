@@ -8,8 +8,16 @@ from tqdm import tqdm
 from utils_generation import *
 from utils_interp import *
 
-# correspond to 'I' 'As' 'Ass' 'Ref' 'Ex' 'While'
-refusal_tokens = [29505, 2966, 7994, 4448, 1734, 24243]
+# correspond to 'I' 'As' 'Ass' 'Ref' 'Ex' 'While' 'Response' 'This' 'We' 'Ref'
+refusal_tokens = [29505, 2966, 7994, 4448, 1734, 24243, 3731, 25, 11, 13]
+
+def display_tokens(tokens, tokenizer):
+    unique_tokens, counts = torch.unique(tokens, return_counts=True)
+    token_distribution = dict(zip(unique_tokens.cpu().tolist(), counts.cpu().tolist()))
+    sorted_distribution = dict(sorted(token_distribution.items(), key=lambda x: x[1], reverse=True))
+    for token_id, freq in sorted_distribution.items():
+        decoded = tokenizer.decode(token_id)
+        print(f"Token: '{decoded}' | Frequency: {freq} | ID: {token_id}")
 
 def refused(output):
     phrases = ["I'm sorry", "I'm really sorry", "I can't", "I'm unable", "I'm not allowed", "I'm afraid", "responsible AI assistant", "Refuse"]
@@ -37,6 +45,10 @@ def fast_refusals(prompt_toks, nn_model, batch_size=8):
     return score_probs(probs)
 
 def grab_best_refusal_vector(scores, normalized_vectors, top_n=10):
+    if os.path.exists("tmp/refusal_vector.pt") and os.path.exists("tmp/layer.txt"):
+        best_refusal_vector = torch.load("tmp/refusal_vector.pt")
+        best_layer = int(open("tmp/layer.txt", "r").read())
+        return (best_refusal_vector, best_layer)
     flat_indices = torch.argsort(scores.flatten(), descending=True)[:top_n]
     i_indices = flat_indices // scores.shape[1]  # Get row indices
     j_indices = flat_indices % scores.shape[1]   # Get column indices
@@ -45,7 +57,13 @@ def grab_best_refusal_vector(scores, normalized_vectors, top_n=10):
     for idx in range(top_n):
         i, j = i_indices[idx], j_indices[idx]
         print(f"({i.item()}, {j.item()}): {scores[i,j].item():.6f}")
-    return (normalized_vectors[i_indices[0], j_indices[0]], i_indices[0])
+    best_refusal_vector = normalized_vectors[i_indices[0], j_indices[0]]
+    best_layer = i_indices[0]
+    # Save the best refusal vector and layer
+    torch.save(best_refusal_vector, "tmp/refusal_vector.pt")
+    with open("tmp/layer.txt", "w") as f:
+        f.write(str(best_layer.item()))
+    return (best_refusal_vector, best_layer)
 
 def get_dataset(dataset_name):
     with open(f"refusal_direction/dataset/processed/{dataset_name}.json", "r") as f:
