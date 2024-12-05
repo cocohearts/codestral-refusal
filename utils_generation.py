@@ -71,8 +71,7 @@ def activated_completions(prompt_toks, refusal_vector, layer_ind, nn_model, batc
 
             with nn_model.trace(cur_batch):
                 l_output_before = nn_model.backbone.layers[layer_ind].output.clone().save()
-                norms = l_output_before.norm(dim=-1)[:, :, None]
-                l_output_after = l_output_before - refusal_vector * norms.repeat(1, 1, 4096)
+                l_output_after = l_output_before + 2 * refusal_vector
                 nn_model.backbone.layers[layer_ind].output = l_output_after
                 out = nn_model.output.save()
             new_toks = torch.argmax(out.logits[:, -1], dim=-1)

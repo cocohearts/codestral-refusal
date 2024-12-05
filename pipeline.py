@@ -81,11 +81,6 @@ unique_tokens, counts = torch.unique(first_unablated_toks, return_counts=True)
 token_distribution = dict(zip(unique_tokens.cpu().tolist(), counts.cpu().tolist()))
 sorted_distribution = dict(sorted(token_distribution.items(), key=lambda x: x[1], reverse=True))
 
-print("Distribution of first tokens:")
-for token_id, freq in sorted_distribution.items():
-    decoded = tokenizer.decode(token_id)
-    print(f"Token: '{decoded}' | Frequency: {freq} | ID: {token_id}")
-
 train_ablated = ablated_completions(prompt_tok_arr, best_refusal_vector, best_layer, nn_model, batch_size=4, file_name="harmbench_train")
 print("harmbench_test_ablated.shape:", train_ablated.shape)
 
@@ -120,29 +115,30 @@ for index, prompt_tok_arr in enumerate(prompt_tok_arrs):
 first_ablated_toks = torch.cat([test_ablated_tensors[index][:, -16] for index in range(len(test_ablated_tensors))])
 first_unablated_toks = torch.cat([test_unablated_tensors[index][:, -16] for index in range(len(test_unablated_tensors))])
 
-print("Ablated first tokens:")
-display_tokens(first_ablated_toks, tokenizer)
-print("Unablated first tokens:")
-display_tokens(first_unablated_toks, tokenizer)
-
-print("Number refused for train ablated outputs:", sum([refused(output) for output in train_ablated_outputs]))
-print("Number refused for train unablated outputs:", sum([refused(output) for output in train_unablated_outputs]))
+print("Number refused for train ablated outputs:", count_refusals(train_ablated_outputs))
+print("Number refused for train unablated outputs:", count_refusals(train_unablated_outputs))
 
 for index, (ablated_output, unablated_output) in enumerate(zip(test_ablated_outputs, test_unablated_outputs)):
     print(f"Dataset {names[index]}")
-    print("Number refused for ablated outputs:", sum([refused(output) for output in ablated_output]))
-    print("Number refused for unablated outputs:", sum([refused(output) for output in unablated_output]))
+    print("Number refused for ablated outputs:", count_refusals(ablated_output))
+    print("Number refused for unablated outputs:", count_refusals(unablated_output))
 
 harmless_test_prompts = get_dataset("alpaca")[256:320]
 harmless_test_tok_arr = arr_tokenize(harmless_test_prompts, tokenizer)
 harmless_test_completions = get_completions(harmless_test_prompts, model, tokenizer, batch_size=4, length=length, file_name="harmless_test")
 harmless_test_activated_completions = activated_completions(harmless_test_tok_arr, best_refusal_vector, best_layer, nn_model, batch_size=4, length=length, file_name="harmless_test")
+harmless_test_output = from_completion_tensor(harmless_test_activated_completions, tokenizer, length=length, file_name="harmless_test")
+harmless_test_activated_output = from_completion_tensor(harmless_test_activated_completions, tokenizer, length=length, file_name="harmless_test_activated")
 
-unique_tokens, counts = torch.unique(completions_tensor[:, -16], return_counts=True)
-token_distribution = dict(zip(unique_tokens.cpu().tolist(), counts.cpu().tolist()))
-sorted_distribution = dict(sorted(token_distribution.items(), key=lambda x: x[1], reverse=True))
-print("Token distribution:", sorted_distribution)
+first_harmless_toks = harmless_test_completions[:, -16]
+first_harmless_activated_toks = harmless_test_activated_completions[:, -16]
+
+# unique_tokens, counts = torch.unique(completions_tensor[:, -16], return_counts=True)
+# token_distribution = dict(zip(unique_tokens.cpu().tolist(), counts.cpu().tolist()))
+# sorted_distribution = dict(sorted(token_distribution.items(), key=lambda x: x[1], reverse=True))
+# print("Token distribution:", sorted_distribution)
 
 plot_refusal_scores(full_names, test_ablated_outputs, test_unablated_outputs)
-plot_first_tok_dist(first_ablated_toks, first_unablated_toks, tokenizer, prompt_type="Harmful")
-plot_first_tok_dist(harmless_test_activated_completions, harmless_test_completions, tokenizer, prompt_type="Harmless")
+plot_harmless_refusal_scores(harmless_test_output, harmless_test_activated_output)
+plot_first_tok_dist(first_ablated_toks, first_unablated_toks, tokenizer, prompt_type="harmful")
+plot_first_tok_dist(first_harmless_activated_toks, first_harmless_toks, tokenizer, prompt_type="harmless")
