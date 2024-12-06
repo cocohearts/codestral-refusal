@@ -85,14 +85,14 @@ def activated_completions(prompt_toks, refusal_vector, layer_ind, nn_model, batc
     return activated_completions
 
 
-def all_ablation_logits(prompt_tok_arr, normalized_vectors, batch_size=4):
+def all_ablation_logits(prompt_tok_arr, normalized_vectors, nn_model, batch_size=4):
     # grabs all first-token logits for all possible refusal vectors
     if not os.path.exists("tmp/all_logits.pt"):
         cutoff = 0.8
         n_layers = int(cutoff * 64)
         all_logits = torch.zeros(n_layers, normalized_vectors.shape[1], len(prompt_tok_arr), 32768)
         for layer_ind in tqdm(range(n_layers), desc="Processing layers"):
-            all_logits[layer_ind] = ablation_logits(prompt_tok_arr, normalized_vectors[layer_ind], layer_ind, batch_size)
+            all_logits[layer_ind] = ablation_logits(prompt_tok_arr, normalized_vectors[layer_ind], layer_ind, nn_model, batch_size)
         torch.save(all_logits, "tmp/all_logits.pt")
     else:
         all_logits = torch.load("tmp/all_logits.pt", map_location="cuda:2", weights_only=True)
