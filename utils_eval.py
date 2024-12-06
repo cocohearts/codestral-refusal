@@ -34,7 +34,6 @@ def plot_harmless_refusal_scores(harmless_outputs, harmless_activated_outputs):
 
     # Set style and create figure 
     sns.set_style("whitegrid")
-    plt.figure(figsize=(10, 6))
 
     # Create bar plot
     sns.barplot(
@@ -49,6 +48,7 @@ def plot_harmless_refusal_scores(harmless_outputs, harmless_activated_outputs):
     plt.tight_layout()
     
     plt.savefig('figures/harmless_refusal_scores.png', bbox_inches='tight', dpi=300)
+    plt.close()
 
 def plot_refusal_scores(names, ablated_outputs, unablated_outputs):
     ablated_scores = [sum([refused(output) for output in outputs]) / len(outputs) for outputs in ablated_outputs]
@@ -58,21 +58,20 @@ def plot_refusal_scores(names, ablated_outputs, unablated_outputs):
     data = []
     for i, name in enumerate(names):
         data.extend([
-            {'Dataset': name, 'Type': 'Ablated', 'Refusal Rate': ablated_scores[i]},
-            {'Dataset': name, 'Type': 'Unablated', 'Refusal Rate': unablated_scores[i]}
+            {'Dataset': name, '': 'Ablated', 'Refusal Rate': ablated_scores[i]},
+            {'Dataset': name, '': 'Unablated', 'Refusal Rate': unablated_scores[i]}
         ])
 
     # Set style and create figure
     sns.set_style("whitegrid")
-    plt.figure(figsize=(10, 6))
     
     # Create grouped bar plot
     sns.barplot(
         data=pd.DataFrame(data),
         x='Dataset',
         y='Refusal Rate',
-        hue='Type',
-        palette='Set2'
+        hue='',
+        palette=['#1f77b4', '#ff7f0e']
     )
 
     # Customize plot
@@ -81,6 +80,7 @@ def plot_refusal_scores(names, ablated_outputs, unablated_outputs):
     plt.ylim(0, 1)
     
     plt.savefig('figures/test_refusal_scores.png', bbox_inches='tight', dpi=300)
+    plt.close()
 
 def plot_first_tok_dist(modified_tokens, original_tokens, tokenizer, prompt_type, file_name=None):
     if prompt_type not in ["harmful", "harmless"]:
@@ -108,7 +108,6 @@ def plot_first_tok_dist(modified_tokens, original_tokens, tokenizer, prompt_type
                 labels.append('')
 
         # Create pie chart using seaborn
-        plt.figure(figsize=(10, 8))
         sns.set_style("whitegrid")
         # Convert data to DataFrame for seaborn
         df = pd.DataFrame({'labels': labels, 'frequencies': frequencies})

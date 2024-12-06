@@ -5,12 +5,12 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-def get_activations(prompts, nn_model, length = 16, batch_size = 8, file_name = None):
+def get_activations(prompts, model, nn_model, tokenizer, length = 16, batch_size = 8, file_name = None):
     if file_name is not None and os.path.exists(f"tmp/{file_name}_activations.pt"):
         return torch.load(f"tmp/{file_name}_activations.pt", map_location="cuda:1", weights_only=True)
 
-    prompt_len = arr_tokenize(prompts, nn_model.tokenizer).shape[1]
-    completions = get_completions(prompts, length, batch_size, f"{file_name}")
+    prompt_len = arr_tokenize(prompts, tokenizer).shape[1]
+    completions = get_completions(prompts, model, tokenizer, length, batch_size, f"{file_name}")
 
     dataloader = DataLoader(completions, batch_size=batch_size, shuffle=False)
 
