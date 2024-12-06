@@ -1,7 +1,6 @@
 import torch
 import seaborn as sns
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 
 # correspond to 'I' 'As' 'Ass' 'Ref' 'Ex' 'While' 'Response' 'This' 'We' 'Ref' 'This'

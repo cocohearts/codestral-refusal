@@ -1,7 +1,2 @@
-nvcc compiler located at 
-/data/vision/torralba/selfmanaged/torralba/projects/yaelvink/alexzhao/codestral/local_cuda_12-4/var/cuda-repo-ubuntu2204-12-4-local/local_cuda/usr/local/cuda-12.4/bin
-
-do NOT move local_cuda_12-4 directory
-
-export LD_LIBRARY_PATH=/data/vision/torralba/selfmanaged/torralba/projects/yaelvink/alexzhao/codestral/local_cuda_12-4/var/cuda-repo-ubuntu2204-12-4-local/local_cuda/usr/local/cuda-12.4/lib64:$LD_LIBRARY_PATH
-export PATH=/data/vision/torralba/selfmanaged/torralba/projects/yaelvink/alexzhao/codestral/local_cuda_12-4/var/cuda-repo-ubuntu2204-12-4-local/local_cuda/usr/local/cuda-12.4/bin:$PATH
+## Abstract
+Mamba, a powerful alternative to Transformers, is a structured state-space sequential model inspired by S4, H3, and gated MLP. Famously introduced by [Albert Gu and Tri Dao](https://arxiv.org/abs/2312.00752), their Mamba model takes constant inference time regardless of the context length. This efficiency boost raises the possibility of much faster scaling laws than transformers, and efficient long-context inference. The Mamba architecture has very high potential, but research into interpretability and safety mechanisms in state space models is lacking. Inspired by Arditi et al., I found a single steering vector in Mistral's open-source instruction-tuned chat-based SSM [codestral-7b](https://huggingface.co/mistralai/Mamba-Codestral-7B-v0.1) based on the improved Mamba2 architecture. Ablating vector in the residual stream at layer __ elicits responses to harmful prompts, whereas adding this vector causes the model to refuse on otherwise harmless prompts. `describe results`. These results strengthen the connections between Mamba models and transformers, and demonstrate the similarity in their mechanisms.
