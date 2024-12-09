@@ -1,4 +1,5 @@
 from utils_tokenize import *
+from utils_eval import *
 import os
 import torch
 from torch.utils.data import DataLoader
@@ -56,7 +57,7 @@ def ablated_completions(prompt_toks, refusal_vector, layer_ind, nn_model, batch_
 
     return ablated_completions
 
-def activated_completions(prompt_toks, refusal_vector, layer_ind, nn_model, batch_size=8, length=16, file_name=None):
+def get_activated_completions(prompt_toks, refusal_vector, layer_ind, nn_model, batch_size=8, length=16, activation_factor=2, file_name=None):
     if file_name is not None and os.path.exists(f"tmp/{file_name}_activated_completions.pt"):
         return torch.load(f"tmp/{file_name}_activated_completions.pt", map_location="cuda:1", weights_only=True)
 
@@ -71,7 +72,7 @@ def activated_completions(prompt_toks, refusal_vector, layer_ind, nn_model, batc
 
             with nn_model.trace(cur_batch):
                 l_output_before = nn_model.backbone.layers[layer_ind].output.clone().save()
-                l_output_after = l_output_before + 2 * refusal_vector
+                l_output_after = l_output_before + activation_factor * refusal_vector
                 nn_model.backbone.layers[layer_ind].output = l_output_after
                 out = nn_model.output.save()
             new_toks = torch.argmax(out.logits[:, -1], dim=-1)
@@ -84,6 +85,18 @@ def activated_completions(prompt_toks, refusal_vector, layer_ind, nn_model, batc
 
     return activated_completions
 
+def refusal_score_activation_factor(prompt_toks, refusal_vector, layer_ind, tokenizer, nn_model, activation_factor, batch_size=8, file_name=None):
+    if file_name is not None:
+        file_name = f"{file_name}_activation_factor_{activation_factor}"
+    if file_name is not None and os.path.exists(f"tmp/{file_name}_refusal_score.txt"):
+        with open(f"tmp/{file_name}_refusal_score.txt", "r") as f:
+            return float(f.read())
+    activated_completions = get_activated_completions(prompt_toks, refusal_vector, layer_ind, nn_model, batch_size, activation_factor=activation_factor, file_name=file_name)
+    activated_output = from_completion_tensor(activated_completions, tokenizer, file_name=file_name, ablated=True)
+    score = count_refusals(activated_output) / len(activated_output)
+    with open(f"tmp/{file_name}_refusal_score.txt", "w") as f:
+        f.write(str(score))
+    return score
 
 def all_ablation_logits(prompt_tok_arr, normalized_vectors, nn_model, batch_size=4):
     # grabs all first-token logits for all possible refusal vectors

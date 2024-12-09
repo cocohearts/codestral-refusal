@@ -28,7 +28,7 @@ def plot_harmless_refusal_scores(harmless_outputs, harmless_activated_outputs):
     # Create DataFrame for seaborn
     data = pd.DataFrame({
         'Type': ['Unactivated', 'Activated'],
-        'Refusal Rate': [score, activated_score]
+        'Refusal Rate on Alpaca': [score, activated_score]
     })
 
     # Set style and create figure 
@@ -38,8 +38,7 @@ def plot_harmless_refusal_scores(harmless_outputs, harmless_activated_outputs):
     sns.barplot(
         data=data,
         x='Type',
-        y='Refusal Rate',
-        legend=False,
+        y='Refusal Rate on Alpaca',
         palette=['#1f77b4', '#ff7f0e']  # Blue, orange
     )
 
@@ -47,6 +46,33 @@ def plot_harmless_refusal_scores(harmless_outputs, harmless_activated_outputs):
     plt.tight_layout()
     
     plt.savefig('figures/harmless_refusal_scores.png', bbox_inches='tight', dpi=300)
+    plt.close()
+
+def plot_line_harmless_refusal_scores(refusal_scores, activation_factors):
+    # Create DataFrame for seaborn
+    data = pd.DataFrame({
+        'Activation Factor': activation_factors,
+        'Refusal Rate': refusal_scores
+    })
+
+    # Set style and create figure
+    sns.set_style("whitegrid")
+    plt.xticks(activation_factors)
+
+    # Create line plot
+    sns.lineplot(
+        data=data,
+        x='Activation Factor',
+        y='Refusal Rate',
+        marker='o'
+    )
+
+    plt.xlabel('Activation Factor')
+    plt.ylabel('Refusal Rate on Alpaca')
+    plt.ylim(0, 1)
+    plt.tight_layout()
+    
+    plt.savefig('figures/harmless_line_refusal_scores.png', bbox_inches='tight', dpi=300)
     plt.close()
 
 def plot_refusal_scores(names, ablated_outputs, unablated_outputs):

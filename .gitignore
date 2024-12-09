@@ -4,4 +4,4 @@ __pycache__
 tmp/*
 !tmp/**.json
 !tmp/refusal_vector.pt
-!tmp/layer.txt
+!tmp/**.txt

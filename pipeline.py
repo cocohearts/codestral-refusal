@@ -130,7 +130,7 @@ for index, (ablated_output, unablated_output) in enumerate(zip(test_ablated_outp
 harmless_test_prompts = get_dataset("alpaca")[256:320]
 harmless_test_tok_arr = arr_tokenize(harmless_test_prompts, tokenizer)
 harmless_test_completions = get_completions(harmless_test_prompts, model, tokenizer, batch_size=batch_size, length=length, file_name="harmless_test")
-harmless_test_activated_completions = activated_completions(harmless_test_tok_arr, best_refusal_vector, best_layer, nn_model, batch_size=batch_size, length=length, file_name="harmless_test")
+harmless_test_activated_completions = get_activated_completions(harmless_test_tok_arr, best_refusal_vector, best_layer, nn_model, batch_size=batch_size, length=length, file_name="harmless_test")
 harmless_test_output = from_completion_tensor(harmless_test_completions, tokenizer, length=length, file_name="harmless_test")
 harmless_test_activated_output = from_completion_tensor(harmless_test_activated_completions, tokenizer, length=length, file_name="harmless_test_activated")
 
@@ -141,3 +141,10 @@ plot_refusal_scores(full_names, test_ablated_outputs, test_unablated_outputs)
 plot_harmless_refusal_scores(harmless_test_output, harmless_test_activated_output)
 plot_first_tok_dist(first_ablated_toks, first_unablated_toks, tokenizer, prompt_type="harmful")
 plot_first_tok_dist(first_harmless_activated_toks, first_harmless_toks, tokenizer, prompt_type="harmless")
+
+activation_factors = [0.0, 0.4, 0.8, 1.2, 1.6, 2.0]
+scores = []
+for activation_factor in activation_factors:
+    scores.append(refusal_score_activation_factor(harmless_test_tok_arr, best_refusal_vector, best_layer, tokenizer, nn_model, activation_factor, batch_size=batch_size, file_name="harmless_test"))
+
+plot_line_harmless_refusal_scores(scores, activation_factors)

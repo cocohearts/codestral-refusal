@@ -19,7 +19,7 @@ def generate(prompt, model, tokenizer, n_tokens=16):
     new_toks = out[:, tokens.shape[1]:]
     return tokenizer.batch_decode(new_toks)[0]
 
-def from_completion_tensor(completion_tensor, tokenizer, length, file_name=None, ablated=False):
+def from_completion_tensor(completion_tensor, tokenizer, length=16, file_name=None, ablated=False):
     # returns list of decoded outputs
     if ablated:
         file_name = f"{file_name}_ablated"
