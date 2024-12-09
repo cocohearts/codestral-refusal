@@ -37,9 +37,9 @@ def plot_harmless_refusal_scores(harmless_outputs, harmless_activated_outputs):
     # Create bar plot
     sns.barplot(
         data=data,
-        hue='Type',
-        legend=False,
+        x='Type',
         y='Refusal Rate',
+        legend=False,
         palette=['#1f77b4', '#ff7f0e']  # Blue, orange
     )
 
