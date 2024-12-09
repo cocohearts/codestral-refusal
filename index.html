@@ -88,8 +88,8 @@
                 mechanisms in state space models is lacking. Inspired by Arditi et al., I found a single steering vector
                 in Mistral's open-source instruction-tuned chat-based SSM
                 <a href="https://huggingface.co/mistralai/Mamba-Codestral-7B-v0.1">codestral-7b</a> based on the
-                improved Mamba2
-                architecture. Ablating this vector in the residual stream at layer 35 (out of 64 total) reduces refusals
+                improved <a href="https://arxiv.org/abs/2405.21060">Mamba2</a> architecture. Ablating this vector in the
+                residual stream at layer 35 (out of 64 total) reduces refusals
                 to harmful prompts by more than 40%. Adding this vector to the residual stream of harmless prompts
                 causes the model to refuse on 45% of harmless prompts compared to baseline. These results broaden the
                 span of difference-of-means methods, and further demonstrate the similarity in the mechanisms of Mamba
@@ -116,7 +116,8 @@
                     href="https://arxiv.org/abs/2406.11717">Arditi et al.</a>, represent interpretable
                 directions in model activation space that correlate with specific behaviors or capabilities. These
                 vectors can be identified through various techniques, including optimization over model outputs or
-                analysis of activation differences between distinct behavioral modes. Recent work has shown that these
+                analysis of activation differences between distinct behavioral modes. Recent work by <a
+                    href="https://arxiv.org/abs/2308.10248">Turner et al.</a> has shown that these
                 vectors often exist across model scales and architectures, suggesting they capture fundamental aspects
                 of model computation rather than artifacts of specific architectures. <a
                     href="https://arxiv.org/abs/2406.11717">Arditi et al.</a> developed a novel
@@ -126,7 +127,9 @@
                 the refusal behavior of multiple transformer-based language models.
             </p>
             <p>
-                Given the demonstrated similarities between Mamba's computational patterns and those of transformer
+                In early 2024, <a href="https://arxiv.org/abs/2403.01590">Ali et al.</a> found steering vectors
+                in transformer models that controlled refusal behavior. Given the demonstrated similarities between
+                Mamba's computational patterns and those of transformer
                 models, particularly in terms of their learned representations and behavioral characteristics, I
                 hypothesized that similar steering mechanisms would be present in Codestral-7B. This expectation was
                 strengthened by initial observations of Codestral's robust refusal behavior on harmful prompts,
@@ -444,14 +447,26 @@
             <h2 class="title is-3 has-text-centered">References</h2>
             <ul>
                 <li>
-                    Albert Gu and Tri Dao. "<a href="https://arxiv.org/abs/2312.00752">Mamba: Linear-Time Sequence
-                        Modeling with Selective State Spaces.</a>" <i>arXiv
-                        preprint arXiv:2312.00752</i> (2023).
+                    Ali Ameen, Itamar Zimerman, and Lior Wolf. "<a href="https://arxiv.org/abs/2403.01590">
+                        The Hidden Attention of Mamba Models.</a>" <i>arXiv preprint arXiv:2403.01590</i>
+                    (2024).
                 </li>
                 <li>
                     Andy Arditi, Oscar Obeso, Aaquib Syed, Daniel Paleka, Nina Panickssery, Wes Gurnee, and Neel Nanda.
                     "<a href="https://arxiv.org/abs/2406.11717">Refusal in Language Models Is Mediated by a Single
                         Direction.</a>" <i>arXiv preprint arXiv:2406.11717</i> (2024).
+                </li>
+                <li>
+                    Patrick Chao and Edoardo Debenedetti and Alexander Robey and Maksym Andriushchenko and Francesco
+                    Croce and Vikash Sehwag and Edgar Dobriban and Nicolas Flammarion and George J. Pappas and Florian
+                    Tramer and Hamed Hassani and Eric Wong. "<a href="https://arxiv.org/abs/2404.01318">JailbreakBench:
+                        An Open Robustness Benchmark for Jailbreaking Large Language Models.</a>" <i>arXiv
+                        preprint arXiv:2404.01318</i> (2024).
+                </li>
+                <li>
+                    Tri Dao and Albert Gu. "<a href="https://arxiv.org/abs/2405.21060">Transformers are SSMs:
+                        Generalized Models and Efficient Algorithms Through Structured State Space Duality.</a>"
+                    <i>arXiv preprint arXiv:2405.21060</i> (2024).
                 </li>
                 <li>
                     Jaden Fiotto-Kaufman, Alexander R Loftus, Eric Todd, Jannik Brinkmann, Caden Juang, Koyena Pal, Can
@@ -461,8 +476,53 @@
                         Foundation Model Internals.</a>" <i>arXiv preprint arXiv:2407.14561</i> (2024).
                 </li>
                 <li>
+                    Albert Gu and Tri Dao. "<a href="https://arxiv.org/abs/2312.00752">Mamba: Linear-Time Sequence
+                        Modeling with Selective State Spaces.</a>" <i>arXiv
+                        preprint arXiv:2312.00752</i> (2023).
+                </li>
+                <li>
+                    Yangsibo Huang and Samyak Gupta and Mengzhou Xia and Kai Li and Danqi Chen. "<a
+                        href="https://arxiv.org/abs/2310.06987">Catastrophic Jailbreak of Open-source LLMs via
+                        Exploiting Generation.</a>" <i>arXiv preprint arXiv:2310.06987</i> (2023).
+                </li>
+                <li>
+                    Mantas Mazeika and Long Phan and Xuwang Yin and Andy Zou and Zifan Wang and Norman Mu and Elham
+                    Sakhaee and Nathaniel Li and Steven Basart and Bo Li and David Forsyth and Dan Hendrycks. "<a
+                        href="https://arxiv.org/abs/2402.04249">HarmBench: A Standardized Evaluation Framework for
+                        Automated Red Teaming and Robust Refusal.</a>" <i>arXiv preprint arXiv:2402.04249</i> (2024).
+                </li>
+                <li>
+                    Mantas Mazeika and Andy Zou and Norman Mu and Long Phan and Zifan Wang and Chunru Yu and Adam Khoja
+                    and Fengqing Jiang and Aidan O'Gara and Ellie Sakhaee and Zhen Xiang and Arezoo Rajabi and Dan
+                    Hendrycks and Radha Poovendran and Bo Li and David Forsyth. "<a
+                        href="https://trojandetection.ai/">TDC 2023 (LLM Edition): The Trojan Detection Challenge.</a>"
+                    <i>NeurIPS Competition Track</i> (2023).
+                </li>
+                <li>
                     Mistral AI. "Mamba-Codestral-7B-v0.1." <i>Hugging Face</i>. Available at: <a
                         href="https://huggingface.co/mistralai/Mamba-Codestral-7B-v0.1">https://huggingface.co/mistralai/Mamba-Codestral-7B-v0.1</a>
+                </li>
+                <li>
+                    Alexandra Souly and Qingyuan Lu and Dillon Bowen and Tu Trinh and Elvis Hsieh and Sana Pandey and
+                    Pieter Abbeel and Justin Svegliato and Scott Emmons and Olivia Watkins and Sam Toyer. "<a
+                        href="https://arxiv.org/abs/2402.10260">A StrongREJECT for Empty Jailbreaks.</a>" <i>arXiv
+                        preprint arXiv:2402.10260</i> (2024).
+                </li>
+                <li>
+                    Rohan Taori and Ishaan Gulrajani and Tianyi Zhang and Yann Dubois and Xuechen Li and Carlos
+                    Guestrin and Percy Liang and Tatsunori B. Hashimoto. "<a
+                        href="https://github.com/tatsu-lab/stanford_alpaca">Stanford Alpaca: An Instruction-following
+                        LLaMA model.</a>" <i>GitHub repository</i> (2023).
+                </li>
+                <li>
+                    Alexander Matt Turner, Lisa Thiergart, Gavin Leech, David Udell, Juan J. Vazquez, Ulisse Mini, and
+                    Monte MacDiarmid. "<a href="https://arxiv.org/abs/2308.10248">Steering Language Models With
+                        Activation Engineering.</a>" <i>arXiv preprint arXiv:2308.10248</i> (2024).
+                </li>
+                <li>
+                    Andy Zou and Zifan Wang and Nicholas Carlini and Milad Nasr and J. Zico Kolter and Matt
+                    Fredrikson. "<a href="https://arxiv.org/abs/2307.15043">Universal and Transferable Adversarial
+                        Attacks on Aligned Language Models.</a>" <i>arXiv preprint arXiv:2307.15043</i> (2023).
                 </li>
             </ul>
         </div>
