@@ -26,6 +26,7 @@
     <link rel="stylesheet" href="static/css/bulma.min.css">
     <link rel="stylesheet" href="static/css/index.css">
     <script id="MathJax-script" async src="static/js/mathjax/tex-chtml.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         .section:nth-of-type(even) {
             background-color: #f0f0f0;
@@ -50,9 +51,28 @@
         <div class="hero-body">
             <div class="container is-max-desktop">
                 <h1 class="title is-1 has-text-centered">Refusal Vectors in Mamba Codestral-7B</h1>
-                <p class="subtitle has-text-centered"><a href="https://github.com/cocohearts">Alex Zhao</a></p>
+
+                <div class="is-size-5 publication-authors has-text-centered">
+                    <!-- Paper authors -->
+                    <span class="author-block">
+                        <a href="https://github.com/cocohearts" target="_blank">Alex Zhao</a></span>
+                </div>
+                <div class="column has-text-centered">
+                    <div class="publication-links">
+                        <span class="link-block">
+                            <a href="https://github.com/cocohearts/codestral-refusal" target="_blank"
+                                class="external-link button is-normal is-rounded is-dark">
+                                <span class="icon">
+                                    <i class="fab fa-github"></i>
+                                </span>
+                                <span>Code</span>
+                            </a>
+                        </span>
+                    </div>
+                </div>
             </div>
         </div>
+        <div style="margin-top: -2rem;"></div>
     </section>
 
     <section class="section">
@@ -256,6 +276,7 @@
                 datasets.
             </p>
             <div class="box has-background-light-gray">
+
                 "As an AI assistant, your core function is to help users while safeguarding against potential misuse.
                 You must refuse any requests that could lead to harm, illegal activities, or the spread of
                 misinformation. When declining, offer a brief explanation and suggest safer alternatives when
