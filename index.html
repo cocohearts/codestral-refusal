@@ -233,7 +233,7 @@
                 <li>using several layers, each composed of multiple parallel Mamba blocks that add their seq-to-seq
                     output to the residual stream</li>
                 <li>projecting into a "head dimension" and convolving with previous tokens before using the SSM</li>
-                <li>gating using a MLP before downprojecting back into the token dimension</li>
+                <li>gating using a MLP before projecting back down into the token dimension</li>
             </ul>
             </p>
             <figure>
@@ -241,7 +241,7 @@
                 <figcaption>Figure 2: Structure of the Mamba block.</figcaption>
             </figure>
             <p>
-                Codestral uses the slightly improved Mamba2 architecture, which has been shown to parallelize more
+                Codestral uses the slightly improved Mamba2 architecture, which was designed to parallelize more
                 performantly.
             </p>
 
@@ -252,8 +252,8 @@
         <div class="container content is-max-desktop">
             <h2 class="title is-3 has-text-centered">Methodology</h2>
             <p>
-                I began by handcrafting a system prompt to maximize the baseline refusal rate on the harmful datasets.
-                The system prompt I used was
+                I began by handcrafting the below system prompt to maximize the baseline refusal rate on the harmful
+                datasets.
             </p>
             <div class="box has-background-light-gray">
                 "As an AI assistant, your core function is to help users while safeguarding against potential misuse.

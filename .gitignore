@@ -1,5 +1,6 @@
 codestral-7b-cache
 __pycache__
+.vscode/
 
 tmp/*
 !tmp/**.json
