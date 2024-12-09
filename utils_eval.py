@@ -66,6 +66,15 @@ def plot_line_harmless_refusal_scores(refusal_scores, activation_factors):
         y='Refusal Rate',
         marker='o'
     )
+    # Add regression line
+    sns.regplot(
+        data=data,
+        x='Activation Factor',
+        y='Refusal Rate',
+        scatter=False,
+        color='red',
+        line_kws={'linestyle': '--'}
+    )
 
     plt.xlabel('Activation Factor')
     plt.ylabel('Refusal Rate on Alpaca')
