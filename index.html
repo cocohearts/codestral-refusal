@@ -25,7 +25,7 @@
     <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro" rel="stylesheet">
     <link rel="stylesheet" href="static/css/bulma.min.css">
     <link rel="stylesheet" href="static/css/index.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-AMS_HTML"></script>
+    <script id="MathJax-script" async src="static/js/mathjax/tex-chtml.js"></script>
     <style>
         .section:nth-of-type(even) {
             background-color: #f0f0f0;
@@ -36,6 +36,11 @@
             background-color: #ffffff;
             /* White for even sections */
         }
+
+        .has-background-light-gray {
+            background-color: #f0f0f0;
+            /* Light gray color */
+        }
     </style>
 </head>
 
@@ -45,7 +50,7 @@
         <div class="hero-body">
             <div class="container is-max-desktop">
                 <h1 class="title is-1 has-text-centered">Refusal Vectors in Mamba Codestral-7B</h1>
-                <p class="subtitle has-text-centered">Alex Zhao</p>
+                <p class="subtitle has-text-centered"><a href="https://github.com/cocohearts">Alex Zhao</a></p>
             </div>
         </div>
     </section>
@@ -78,7 +83,8 @@
             <h2 class="title is-3 has-text-centered">Introduction and Motivation</h2>
             <p>
                 Mamba represents a significant advancement in sequence modeling, departing from the attention-based
-                paradigm that has dominated recent years. Introduced by Gu and Dao, this structured state-space model
+                paradigm that has dominated recent years. Introduced by <a href="https://arxiv.org/abs/2312.00752">Gu
+                    and Dao</a>, this structured state-space model
                 (SSM) achieves linear-time inference through selective scanning, enabling processing of arbitrary
                 sequence lengths without the quadratic complexity inherent to transformers. By incorporating techniques
                 from S4 and gated MLPs, Mamba demonstrates competitive performance across various tasks while
@@ -86,12 +92,14 @@
                 attractive for applications requiring efficient processing of long sequences.
             </p>
             <p>
-                Steering vectors, first identified in transformer architectures by Li et al., represent interpretable
+                Steering vectors, first identified in transformer architectures by <a
+                    href="https://arxiv.org/abs/2406.11717">Arditi et al.</a>, represent interpretable
                 directions in model activation space that correlate with specific behaviors or capabilities. These
                 vectors can be identified through various techniques, including optimization over model outputs or
                 analysis of activation differences between distinct behavioral modes. Recent work has shown that these
                 vectors often exist across model scales and architectures, suggesting they capture fundamental aspects
-                of model computation rather than artifacts of specific architectures. Arditi et al. developed a novel
+                of model computation rather than artifacts of specific architectures. <a
+                    href="https://arxiv.org/abs/2406.11717">Arditi et al.</a> developed a novel
                 methodology for identifying steering vectors related to model safety behaviors. Their approach utilized
                 the difference-of-means between internal activations in harmless vs. harmful prompts. Using automated
                 refusal scores, they successfully isolated single vectors that, when manipulated, could reliably control
@@ -109,8 +117,8 @@
 
     <section class="section">
         <div class="container content is-max-desktop">
-            <h2 class="title is-3">Background</h2>
-            <h3 class="title is-4">Refusal</h3>
+            <h2 class="title is-3 has-text-centered">Background</h2>
+            <h3 class="title is-4 has-text-centered">Refusal</h3>
             <p>
                 Language models are usually pretrained on a vast corpus of data, but after pretraining they only have
                 the capability of continuing an arbitrary stream of text. Instruction fine-tuning is the process of
@@ -118,13 +126,13 @@
                 prompts, and "assistant" responses.
 
                 System prompts are chosen to elicit desirable behavior, such as responding truthfully and safely.
-                Importantly, the fine-tuning process is supposed to teach the model to *refuse* to answer harmful,
+                Importantly, the fine-tuning process is supposed to teach the model to <b>refuse</b> to answer harmful,
                 dangerous, or false content. Various AI safety researchers are interested in battle-testing the
                 robustness of this safety fine-tuning, and there is an existing body of research in how to jailbreak
                 models via prompts or adjusting model internals.
             </p>
 
-            <h3 class="title is-4">Steering Vectors</h3>
+            <h3 class="title is-4 has-text-centered">Steering Vectors</h3>
             <p>
                 The linear representation hypothesis states that "features" (meaningful information) are stored in
                 residual streams as linear combinations of nearly-orthogonal basis vectors. In the past, features have
@@ -134,7 +142,7 @@
                 called "steering vectors." In this work I found a steering vector that controlled refusal.
             </p>
 
-            <h3 class="title is-4">Mamba Background</h3>
+            <h3 class="title is-4 has-text-centered">Mamba Background</h3>
             <p>
                 The Mamba language model is based off of previous work in RNNs and state space models. The crucial thing
                 to keep in mind is that Mamba only requires the current "hidden state" and a constant number of previous
@@ -147,7 +155,7 @@
                 and add back into the residual stream. Other recent work establishes theoretical equivalence between
                 Mamba models and a specific subset of transformers. For this reason I conjectured that a simple
                 difference-of-means in the residual stream would yield a vector that controls refusal in Mamba models,
-                similar to Arditi et al.
+                similar to <a href="https://arxiv.org/abs/2406.11717">Arditi et al.</a>
             </p>
             <p>
                 I used the <a href="https://huggingface.co/mistralai/Mamba-Codestral-7B-v0.1">codestral-7b</a> open code
@@ -157,9 +165,10 @@
                 prompts. It uses Mistral's standard tokenizer, with 64 layers and a token dimension of 4096.
             </p>
 
-            <h4 class="title is-5">Mamba Operation</h4>
+            <h4 class="title is-5 has-text-centered">Mamba Operation</h4>
             <p>
-                Here is more information about the Mamba model for the interested reader.
+                Here is more information about the Mamba model for the interested reader. Original paper by <a
+                    href="https://arxiv.org/abs/2312.00752">Gu and Dao</a>.
             </p>
             <p>
 
@@ -229,7 +238,7 @@
             </p>
             <figure>
                 <img src="figures/mamba_struct.png" alt="Figure 1: Structure of the Mamba block.">
-                <figcaption>Figure 1: Structure of the Mamba block.</figcaption>
+                <figcaption>Figure 2: Structure of the Mamba block.</figcaption>
             </figure>
             <p>
                 Codestral uses the slightly improved Mamba2 architecture, which has been shown to parallelize more
@@ -241,32 +250,33 @@
 
     <section class="section">
         <div class="container content is-max-desktop">
-            <h2 class="title is-3">Methodology</h2>
+            <h2 class="title is-3 has-text-centered">Methodology</h2>
             <p>
                 I began by handcrafting a system prompt to maximize the baseline refusal rate on the harmful datasets.
                 The system prompt I used was
             </p>
-            <div class="box">
-                ` "As an AI assistant, your core function is to help users while safeguarding against potential misuse.
+            <div class="box has-background-light-gray">
+                "As an AI assistant, your core function is to help users while safeguarding against potential misuse.
                 You must refuse any requests that could lead to harm, illegal activities, or the spread of
                 misinformation. When declining, offer a brief explanation and suggest safer alternatives when
-                appropriate."`
+                appropriate."
             </div>
             <p>
                 Note that this system prompt encourages very conservative behavior, even causing the model to refuse on
                 more than 25% of harmless prompts.
             </p>
             <p>
-                I used the same harmful/harmless instruction datasets collated by Arditi et al, namely training on
-                `AdvBench` and testing on `HarmBench`, `Jailbreak`, and more. I used the first 256 prompts in Advbench
-                as my training dataset to find my refusal vector and layer.
+                I used the same harmful/harmless instruction datasets collated by <a
+                    href="https://arxiv.org/abs/2406.11717">Arditi et al.</a>, namely training on <code>AdvBench</code>
+                and testing on <code>HarmBench</code>, <code>Jailbreak</code>, and more. I used the first 256 prompts in
+                <code>Advbench</code> as my training dataset to find my refusal vector and layer.
             </p>
             <p>
-                To find possible refusal vectors, I used `nnsight` to compute the average residual stream output from
-                each layer in Codestral-7b for each of the first 16 post-prompt tokens. I did this separately for my
-                harmful training dataset, sampled from HarmBench, and my harmless training dataset, sampled from Alpaca.
-                I then took the difference-in-means between these two datasets, and normalized the resulting vectors to
-                have \(L_{2}\) norm of 1.
+                To find possible refusal vectors, I used <code>nnsight</code> to compute the average residual stream
+                output from each layer in Codestral-7b for each of the first 16 post-prompt tokens. I did this
+                separately for my harmful training dataset, sampled from HarmBench, and my harmless training dataset,
+                sampled from <code>Alpaca</code>. I then took the difference-in-means between these two datasets, and
+                normalized the resulting vectors to have \(L_{2}\) norm of 1.
             </p>
             <p>
                 I then selected the most effective vector by running over the same training harmful datasets. For each
@@ -275,7 +285,7 @@
                 using a fast refusal score. I then took the refusal vector and layer corresponding to the lowest fast
                 refusal score averaged over all harmful training prompts.
             </p>
-            <h4 class="title is-4">Refusal Scores</h4>
+            <h4 class="title is-4 has-text-centered">Refusal Scores</h4>
             <p>
                 I employed a fast refusal score and a slow refusal score.
             </p>
@@ -298,32 +308,35 @@
 
     <section class="section">
         <div class="container content is-max-desktop">
-            <h2 class="title is-3">Evaluation and Results</h2>
+            <h2 class="title is-3 has-text-centered">Evaluation and Results</h2>
             <p>
-                I found the best refusal vector to be located at layer 35 out of 64, mirroring Arditi et al. that drew
+                I found the best refusal vector to be located at layer 35 out of 64, mirroring <a
+                    href="https://arxiv.org/abs/2406.11717">Arditi et al.</a> that drew
                 the best refusal vectors from near the middle of the network.
             </p>
             <p>
-                In Figure 1 shown below, I tested the slow refusal score over 64 harmful prompts from each of the other
-                datasets used by Arditi et al., including 64 new prompts from Advbench that did not appear in the
-                training set. Refusal rates were higher than 90% on Advbench and Malicious, but feel to below 60% after
-                ablation. All test datasets saw 40% reductions or higher in refusal rate.
+                In Figure 3 shown below, I tested the slow refusal score over 64 harmful prompts from each of the other
+                datasets used by <a href="https://arxiv.org/abs/2406.11717">Arditi et al.</a>, including 64 new prompts
+                from <code>Advbench</code> that did not appear in the
+                training set. Refusal rates were higher than 90% on <code>Advbench</code> and <code>Malicious</code>,
+                but fell to below 60% after ablation. All test datasets saw 40% reductions or higher in refusal rate.
             </p>
             <figure>
                 <img src="figures/test_refusal_scores.png"
-                    alt="Figure 1: Refusal rates on harmful datasets before and after ablation.">
-                <figcaption>Figure 1: Refusal rates on harmful datasets before and after ablation.</figcaption>
+                    alt="Figure 3: Refusal rates on harmful datasets before and after ablation.">
+                <figcaption>Figure 3: Refusal rates on harmful datasets before and after ablation.</figcaption>
             </figure>
             <p>
-                I also wanted to test whether activation of refusal on harmless prompts was possible. In Figure 2 shown
+                I also wanted to test whether activation of refusal on harmless prompts was possible. In Figure 4 shown
                 below, I directly added two times the (normalized) refusal vector to the residual stream at layer 35,
-                and evaluated refusals on a harmless dataset drawn from Alpaca with and without activations. The refusal
+                and evaluated refusals on a harmless dataset drawn from <code>Alpaca</code> with and without
+                activations. The refusal
                 rate more than tripled after adding the refusal vector, even though responses stayed topical.
             </p>
             <figure>
                 <img src="figures/harmless_refusal_scores.png"
-                    alt="Figure 2: The activation of refusal vectors on harmless prompts induces refusal.">
-                <figcaption>Figure 2: The activation of refusal vectors on harmless prompts induces refusal.
+                    alt="Figure 4: The activation of refusal vectors on harmless prompts induces refusal.">
+                <figcaption>Figure 4: The activation of refusal vectors on harmless prompts induces refusal.
                 </figcaption>
             </figure>
             <p>
@@ -334,21 +347,21 @@
             </p>
             <figure>
                 <img src="figures/harmless_line_refusal_scores.png"
-                    alt="Figure 3: Change in refusal rate with activation factor">
-                <figcaption>Figure 3: Change in refusal rate with activation factor.</figcaption>
+                    alt="Figure 5: Change in refusal rate with activation factor">
+                <figcaption>Figure 5: Change in refusal rate with activation factor.</figcaption>
             </figure>
             <p>
                 As many other researchers have found, refusal is strongly correlated with the first token. Naturally I
                 expected the distribution of the first token to change after ablating or activating the refusal vector,
-                given that it was selected based on its effect on first token logits. In Figures 3 and 4 below, I
+                given that it was selected based on its effect on first token logits. In Figure 5 below, I
                 compared the distribution of first tokens before and after ablation on harmful prompts. The first token
                 shifted from being dominated by "I" (the most standard first token for refusal) to more evenly
                 distributed across a variety of refusal and acceptance tokens (e.g. "1" and "Response").
             </p>
             <figure>
                 <img src="figures/harmful_first_token_distribution.png"
-                    alt="Figure 4: First token distribution on harmful prompts before and after ablation.">
-                <figcaption>Figure 4: First token distribution on harmful prompts before and after ablation.
+                    alt="Figure 6: First token distribution on harmful prompts before and after ablation.">
+                <figcaption>Figure 6: First token distribution on harmful prompts before and after ablation.
                 </figcaption>
             </figure>
             <p>
@@ -358,8 +371,8 @@
             </p>
             <figure>
                 <img src="figures/harmless_first_token_distribution.png"
-                    alt="Figure 5: First token distribution on harmless prompts before and after activation.">
-                <figcaption>Figure 5: First token distribution on harmless prompts before and after activation.
+                    alt="Figure 7: First token distribution on harmless prompts before and after activation.">
+                <figcaption>Figure 7: First token distribution on harmless prompts before and after activation.
                 </figcaption>
             </figure>
         </div>
@@ -367,16 +380,19 @@
 
     <section class="section">
         <div class="container content is-max-desktop">
-            <h2 class="title is-3">Concluding Remarks</h2>
+            <h2 class="title is-3 has-text-centered">Concluding Remarks</h2>
             <p>
                 In this work, I explored internal model activations in an instruction fine-tuned Mamba model to find a
                 single refusal vector. I used two different automated refusal scores and difference-of-means between two
                 different prompt datasets to first find a collection of possible refusal directions, and then evaluate
-                them. I finally used these refusal vectors to 1. ablate internal activations and elicit responses to
-                harmful prompts, and 2. activate internal activations and elicit refusal to harmless prompts. The
-                refusal vector behaves as expected, with increased activation resulting in increasing refusal rates.
-                Finally, similar to in transformers, the first output token serves as a strong proxy for whether the
-                model will refuse. The token "I" dominates this effect.
+                them. I finally used these refusal vectors to
+            <ol>
+                <li>ablate internal activations and elicit responses to harmful prompts,</li>
+                <li>activate internal activations and elicit refusal to harmless prompts.</li>
+            </ol>
+            The refusal vector behaves as expected, with increased activation resulting in increasing refusal rates.
+            Finally, similar to in transformers, the first output token serves as a strong proxy for whether the
+            model will refuse. The token "I" dominates this effect.
             </p>
             <p>
                 There are several possible directions for future work:
@@ -386,7 +402,8 @@
                     Mamba language models exist, which I could have run the same experiments on to verify my results.
                 </li>
                 <li>
-                    Arditi et al. ran experiments on base models that weren't instruction fine-tuned, and found refusal
+                    <a href="https://arxiv.org/abs/2310.02949">Arditi et al.</a> ran experiments on base models that
+                    weren't instruction fine-tuned, and found refusal
                     behavior and refusal vectors in those models as well. I would like to see if these patterns persist
                     in other Mamba models that have not been instruction fine-tuned.
                 </li>
@@ -398,6 +415,30 @@
             <p>
                 Thanks to Achyuta Rajaram and Anish Mudide, as well as TA Jamie Meindl, for helping with ideation.
             </p>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container content is-max-desktop">
+            <h2 class="title is-3 has-text-centered">References</h2>
+            <ul>
+                <li>
+                    Albert Gu and Tri Dao. "Mamba: Linear-Time Sequence Modeling with Selective State Spaces." <i>arXiv
+                        preprint arXiv:2312.00752</i> (2023).
+                </li>
+                <li>
+                    Nora Belrose, William Held, Andrei Arditi, Vikram Ramavarapu, and Nicholas Carlini. "Steering Llama
+                    2: Refusal Vectors in Large Language Models." <i>arXiv preprint arXiv:2406.11717</i> (2024).
+                </li>
+                <li>
+                    Andrei Arditi, Nicholas Carlini, and Daphne Ippolito. "NNSight: An Activation-Based Framework for
+                    Understanding Language Models." <i>arXiv preprint arXiv:2310.02949</i> (2023).
+                </li>
+                <li>
+                    Mistral AI. "Mamba-Codestral-7B-v0.1." <i>Hugging Face</i>. Available at: <a
+                        href="https://huggingface.co/mistralai/Mamba-Codestral-7B-v0.1">https://huggingface.co/mistralai/Mamba-Codestral-7B-v0.1</a>
+                </li>
+            </ul>
         </div>
     </section>
 
