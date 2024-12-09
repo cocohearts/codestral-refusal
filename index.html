@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="description"
+        content="Exploring refusal vectors in the Mamba Codestral-7B model, focusing on safety mechanisms and steering vectors.">
+    <meta property="og:title" content="Refusal Vectors in Mamba Codestral-7B" />
+    <meta property="og:description"
+        content="Analyzing internal activations to control refusal behavior in Mamba's state-space model." />
+    <meta property="og:url" content="cocohearts.github.io/codestral-refusal" />
+    <meta property="og:image" content="static/image/your_banner_image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:title" content="Refusal Vectors in Mamba Codestral-7B">
+    <meta name="twitter:description"
+        content="Controlling refusal behaviors using steering vectors in state-space models.">
+    <meta name="twitter:image" content="static/images/your_twitter_banner_image.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="keywords" content="Mamba, Refusal Vectors, Steering Vectors, AI Safety, Codestral-7B">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Refusal Vectors in Codestral-7B</title>
+    <link rel="icon" type="image/x-icon" href="static/images/favicon.ico">
+    <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro" rel="stylesheet">
+    <link rel="stylesheet" href="static/css/bulma.min.css">
+    <link rel="stylesheet" href="static/css/index.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-AMS_HTML"></script>
+</head>
+
+<body>
+
+    <section class="hero">
+        <div class="hero-body">
+            <div class="container is-max-desktop">
+                <h1 class="title is-1 has-text-centered">Refusal Vectors in Mamba Codestral-7B</h1>
+                <p class="subtitle has-text-centered">Alex Zhao</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container content is-max-desktop">
+            <h2 class="title is-3 has-text-centered">Abstract</h2>
+            <p>
+                Mamba, a powerful alternative to Transformers, is a structured state-space sequential model inspired by
+                S4, H3, and gated MLP. Famously introduced by [Albert Gu and Tri Dao](https://arxiv.org/abs/2312.00752),
+                their Mamba model takes constant inference time regardless of the context length. This efficiency boost
+                raises the possibility of much faster scaling laws than transformers, and efficient long-context
+                inference. The Mamba architecture has very high potential, but research into interpretability and safety
+                mechanisms in state space models is lacking. Inspired by Arditi et al., I found a single steering vector
+                in Mistral's open-source instruction-tuned chat-based SSM
+                [codestral-7b](https://huggingface.co/mistralai/Mamba-Codestral-7B-v0.1) based on the improved Mamba2
+                architecture. Ablating this vector in the residual stream at layer 35 (out of 64 total) reduces refusals
+                to harmful prompts by more than 40%. Adding this vector to the residual stream of harmless prompts
+                causes the model to refuse on 45% of harmless prompts compared to baseline. These results broaden the
+                span of difference-of-means methods, and further demonstrate the similarity in the mechanisms of Mamba
+                and transformer models.
+            </p>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container content is-max-desktop">
+            <h2 class="title is-3 has-text-centered">Introduction and Motivation</h2>
+            <p>
+                Mamba represents a significant advancement in sequence modeling, departing from the attention-based
+                paradigm that has dominated recent years. Introduced by Gu and Dao, this structured state-space model
+                (SSM) achieves linear-time inference through selective scanning, enabling processing of arbitrary
+                sequence lengths without the quadratic complexity inherent to transformers. By incorporating techniques
+                from S4 and gated MLPs, Mamba demonstrates competitive performance across various tasks while
+                maintaining consistent computational requirements regardless of context length, making it particularly
+                attractive for applications requiring efficient processing of long sequences.
+            </p>
+            <p>
+                Steering vectors, first identified in transformer architectures by Li et al., represent interpretable
+                directions in model activation space that correlate with specific behaviors or capabilities. These
+                vectors can be identified through various techniques, including optimization over model outputs or
+                analysis of activation differences between distinct behavioral modes. Recent work has shown that these
+                vectors often exist across model scales and architectures, suggesting they capture fundamental aspects
+                of model computation rather than artifacts of specific architectures. Arditi et al. developed a novel
+                methodology for identifying steering vectors related to model safety behaviors. Their approach utilized
+                the difference-of-means between internal activations in harmless vs. harmful prompts. Using automated
+                refusal scores, they successfully isolated single vectors that, when manipulated, could reliably control
+                the refusal behavior of multiple transformer-based language models.
+            </p>
+            <p>
+                Given the demonstrated similarities between Mamba's computational patterns and those of transformer
+                models, particularly in terms of their learned representations and behavioral characteristics, I
+                hypothesized that similar steering mechanisms would be present in Codestral-7B. This expectation was
+                strengthened by initial observations of Codestral's robust refusal behavior on harmful prompts,
+                suggesting the presence of similar safety mechanisms despite its distinct architectural foundation.
+            </p>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container content is-max-desktop">
+            <h2 class="title is-3">Background</h2>
+            <h3 class="title is-4">Refusal</h3>
+            <p>
+                Language models are usually pretrained on a vast corpus of data, but after pretraining they only have
+                the capability of continuing an arbitrary stream of text. Instruction fine-tuning is the process of
+                further fine-grained training of the model to follow a certain format using "system" prompts, "user"
+                prompts, and "assistant" responses.
+
+                System prompts are chosen to elicit desirable behavior, such as responding truthfully and safely.
+                Importantly, the fine-tuning process is supposed to teach the model to *refuse* to answer harmful,
+                dangerous, or false content. Various AI safety researchers are interested in battle-testing the
+                robustness of this safety fine-tuning, and there is an existing body of research in how to jailbreak
+                models via prompts or adjusting model internals.
+            </p>
+
+            <h3 class="title is-4">Steering Vectors</h3>
+            <p>
+                The linear representation hypothesis states that "features" (meaningful information) are stored in
+                residual streams as linear combinations of nearly-orthogonal basis vectors. In the past, features have
+                been discovered for all kinds of objects and concepts, and the cosine similarity between these vectors
+                and the residual stream has been shown to control the description or presence of the object in
+                subsequent text. Because these vectors can be used to continuously control model behavior, they are
+                called "steering vectors." In this work I found a steering vector that controlled refusal.
+            </p>
+
+            <h3 class="title is-4">Mamba Background</h3>
+            <p>
+                The Mamba language model is based off of previous work in RNNs and state space models. The crucial thing
+                to keep in mind is that Mamba only requires the current "hidden state" and a constant number of previous
+                input tokens to compute the next output token. Thus, inference takes linear time, in contrast to the
+                quadratic time of full-attention transformers, even with KV caching.
+            </p>
+            <p>
+                Similar to the standard transformers recipe, Mamba uses several layers each composed of parallel blocks
+                that take a residual stream as input, project to some head dimension, perform some operation, normalize,
+                and add back into the residual stream. Other recent work establishes theoretical equivalence between
+                Mamba models and a specific subset of transformers. For this reason I conjectured that a simple
+                difference-of-means in the residual stream would yield a vector that controls refusal in Mamba models,
+                similar to Arditi et al.
+            </p>
+            <p>
+                I used the [codestral-7b](https://huggingface.co/mistralai/Mamba-Codestral-7B-v0.1) open code model
+                released by Mistral in July 2024. It performs on par with other transformer models of the same size on
+                various code benchmarks. Importantly, it has also been instruction fine-tuned and refuses on harmful
+                prompts. It uses Mistral's standard tokenizer, with 64 layers and a token dimension of 4096.
+            </p>
+
+            <h4 class="title is-5">Mamba Operation</h4>
+            <p>
+                Here is more information about the Mamba model for the interested reader.
+            </p>
+            <p>
+
+                Mamba is based on the mathematical theory of state space models. State space models are a
+                sequence-to-sequence model similar to RNNs in flavor. They take a continuous input signal $x$ and
+                parameters $A,B,C,$ keep a hidden state $h,$ and have a continuous output $y$ defined by
+                $$
+                \begin{align*}
+                y(t)&=Ch(t),\\
+                h'(t)&=Ah(t) + Bx(t).
+                \end{align*}
+                $$
+            </p>
+            <p>
+                Under this theoretical formulation it's possible to express exactly the form of $y(t)$ given $A,B,C,$
+                and $x$:
+            </p>
+            <p>
+                $$
+                y(t)=\int_{0}^{t}\left[ CA^{t-i}B \right] x(t)\,dt.
+                $$
+            </p>
+            <p>
+                Specifically, the output sequence $y(t)$ is the convolution of $x(t)$ with the sequence $CA^{t}B.$ Here,
+                matrix exponentiation is defined via exponentiation of the singular values of $A,$ since it is a square
+                matrix mapping from hidden state to hidden state.
+            </p>
+            <p>
+
+                Token streams such as text are not continuous signals. Mamba's first insight was to make the signal
+                discrete, but have the "length of time" of each token vary dynamically. In this way, less important
+                tokens would have a smaller effect on the hidden state i.e. memory, and more important tokens would
+                persist in the signal for a longer time and have a large effect on, or even reset, the hidden state. The
+                time of each token is denoted $\Delta,$ and a mathematical function $\text{discretize}$ can be used to
+                convert this sequence pair of tokens with durations into a single discrete sequence of distinct $A_{i}$
+                and $B_{i}.$
+            </p>
+            <p>
+
+                The designers also made various optimizations to improve inference speed. The hidden state dimension $N$
+                is much larger than the token dimension $D,$ so instead of letting $A$ be full-rank the designers made
+                $A$ a diagonal matrix, and called this a "structured state-space sequence model" (S4).
+            </p>
+            <p>
+
+                The designers also let $B,C$ vary as functions of the input token, causing the output to attend to
+                varying parts of the hidden state (recall: memory) as the input token changes. They also implemented the
+                convolution with a parallelized scan algorithm, leading to the final "structured selective scanning
+                state-space sequence model" (S6).
+            </p>
+            <p>
+                ![[Pasted image 20241018231118.png]]
+            </p>
+            <p>
+                Finally, to build the sequence model Mamba, the designers took inspiration from multi-head transformers
+                and gated MLPs, by
+            <ul>
+                <li>using several layers, each composed of multiple parallel Mamba blocks that add their seq-to-seq
+                    output to the residual stream</li>
+                <li>projecting into a "head dimension" and convolving with previous tokens before using the SSM</li>
+                <li>gating using a MLP before downprojecting back into the token dimension</li>
+            </ul>
+            </p>
+            <p>
+                ![[Pasted image 20241208164553.png]]
+            </p>
+            <p>
+                Codestral uses the slightly improved Mamba2 architecture, which has been shown to parallelize more
+                performantly.
+            </p>
+            <div class="box">
+                <p>\[
+                    \begin{align*}
+                    y(t)&=Ch(t),\\
+                    h'(t)&=Ah(t) + Bx(t).
+                    \end{align*}
+                    \]</p>
+                <p>\[
+                    y(t)=\int_{0}^{t}\left[ CA^{t-i}B \right] x(t)\,dt.
+                    \]</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container content is-max-desktop">
+            <h2 class="title is-3">Methodology</h2>
+            <p>
+                I began by handcrafting a system prompt to maximize the baseline refusal rate on the harmful datasets.
+                The system prompt I used was
+            </p>
+            <div class="box">
+                ` "As an AI assistant, your core function is to help users while safeguarding against potential misuse.
+                You must refuse any requests that could lead to harm, illegal activities, or the spread of
+                misinformation. When declining, offer a brief explanation and suggest safer alternatives when
+                appropriate."`
+            </div>
+            <p>
+                Note that this system prompt encourages very conservative behavior, even causing the model to refuse on
+                more than 25% of harmless prompts.
+            </p>
+            <p>
+                I used the same harmful/harmless instruction datasets collated by Arditi et al, namely training on
+                `AdvBench` and testing on `HarmBench`, `Jailbreak`, and more. I used the first 256 prompts in Advbench
+                as my training dataset to find my refusal vector and layer.
+            </p>
+            <p>
+                To find possible refusal vectors, I used `nnsight` to compute the average residual stream output from
+                each layer in Codestral-7b for each of the first 16 post-prompt tokens. I did this separately for my
+                harmful training dataset, sampled from HarmBench, and my harmless training dataset, sampled from Alpaca.
+                I then took the difference-in-means between these two datasets, and normalized the resulting vectors to
+                have $L_{2}$ norm of 1.
+            </p>
+            <p>
+                I then selected the most effective vector by running over the same training harmful datasets. For each
+                harmful prompt, at inference time I orthogonalized the refusal vector from the residual stream output of
+                the corresponding layer. Instead of evaluating a greedy decoding, I evaluated the first-token logit
+                using a fast refusal score. I then took the refusal vector and layer corresponding to the lowest fast
+                refusal score averaged over all harmful training prompts.
+            </p>
+            <h4 class="title is-4">Refusal Scores</h4>
+            <p>
+                I employed a fast refusal score and a slow refusal score.
+            </p>
+            <p>
+                Slow refusal score operated over 16-token greedy decodings. I categorize a response as a refusal if it
+                includes characteristic phrases such as ”I’m sorry” or ”As an AI assistant”. A full list of the tokens
+                used to categorize refusal can be found
+                <a
+                    href="https://github.com/cocohearts/codestral-refusal/blob/8483213c44dd87e3bafd357ebe0df5852c4c3bf9/utils_eval.py#L10">here</a>.
+            </p>
+            <p>
+                The fast refusal score operates on the first post-prompt logit. I designated <a
+                    href="https://github.com/cocohearts/codestral-refusal/blob/8483213c44dd87e3bafd357ebe0df5852c4c3bf9/utils_eval.py#L7">these
+                    specific tokens</a>
+                as "refusal tokens," and after taking the softmax of the logit I evaluate the probability that the first
+                token is a refusal token. The final score is the logit of this probability.
+            </p>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container content is-max-desktop">
+            <h2 class="title is-3">Evaluation and Results</h2>
+            <p>
+                I found the best refusal vector to be located at layer 35 out of 64, mirroring Arditi et al. that drew
+                the best refusal vectors from near the middle of the network.
+            </p>
+            <p>
+                In Figure 1 shown below, I tested the slow refusal score over 64 harmful prompts from each of the other
+                datasets used by Arditi et al., including 64 new prompts from Advbench that did not appear in the
+                training set. Refusal rates were higher than 90% on Advbench and Malicious, but feel to below 60% after
+                ablation. All test datasets saw 40% reductions or higher in refusal rate.
+            </p>
+            <figure>
+                <img src="static/images/figure1.png" alt="Figure 1: Refusal rates after ablation">
+                <figcaption>Figure 1: Refusal rates after ablation.</figcaption>
+            </figure>
+            <p>
+                I also wanted to test whether activation of refusal on harmless prompts was possible. In Figure 2 shown
+                below, I directly added two times the (normalized) refusal vector to the residual stream at layer 35,
+                and evaluated refusals on a harmless dataset drawn from Alpaca with and without activations. The refusal
+                rate more than tripled after adding the refusal vector, even though responses stayed topical.
+            </p>
+            <figure>
+                <img src="static/images/figure2.png" alt="Figure 2: Activation of refusal vectors">
+                <figcaption>Figure 2: Activation of refusal vectors.</figcaption>
+            </figure>
+            <p>
+                I examined how the refusal rate changes as the multiple made to the refusal vector (the activation
+                factor) changed from 0 to 2. In the below figure I evaluated the refusal rate for various activation
+                factors, beginning with no change and ending with the multiple of 2 demonstrated earlier. The refusal
+                rate seems to increase linearly with the activation factor.
+            </p>
+            <p>
+                As many other researchers have found, refusal is strongly correlated with the first token. Naturally I
+                expected the distribution of the first token to change after ablating or activating the refusal vector,
+                given that it was selected based on its effect on first token logits. In Figures 3 and 4 below, I
+                compared the distribution of first tokens before and after ablation on harmful prompts. The first token
+                shifted from being dominated by "I" (the most standard first token for refusal) to more evenly
+                distributed across a variety of refusal and acceptance tokens (e.g. "1" and "Response").
+            </p>
+            <p>
+                I did the same for harmless prompts, and found the opposite pattern. Adding the refusal vector caused
+                the model to respond with "I" 62.5% of the time. Adding a refusal vector only halfway through the model
+                can cause it to reliably output "I" as the first post-prompt token, and that reliably leads to refusal.
+            </p>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container content is-max-desktop">
+            <h2 class="title is-3">Concluding Remarks</h2>
+            <p>
+                In this work, I explored internal model activations in an instruction fine-tuned Mamba model to find a
+                single refusal vector. I used two different automated refusal scores and difference-of-means between two
+                different prompt datasets to first find a collection of possible refusal directions, and then evaluate
+                them. I finally used these refusal vectors to 1. ablate internal activations and elicit responses to
+                harmful prompts, and 2. activate internal activations and elicit refusal to harmless prompts. The
+                refusal vector behaves as expected, with increased activation resulting in increasing refusal rates.
+                Finally, similar to in transformers, the first output token serves as a strong proxy for whether the
+                model will refuse. The token "I" dominates this effect.
+            </p>
+            <p>
+                There are several possible directions for future work:
+            </p>
+            <ul>
+                <li>I was constrained by time and compute to only analyze one Mamba model. Other instruction fine-tuned
+                    Mamba language models exist, which I could have run the same experiments on to verify my results.
+                </li>
+                <li>
+                    Arditi et al. ran experiments on base models that weren't instruction fine-tuned, and found refusal
+                    behavior and refusal vectors in those models as well. I would like to see if these patterns persist
+                    in other Mamba models that have not been instruction fine-tuned.
+                </li>
+                <li>
+                    I could also have orthogonalized model weights to the refusal vector, baking the refusal vector
+                    ablation into the model weights instead of intervening at that layer.
+                </li>
+            </ul>
+            Thanks to Achyuta Rajaram and Anish Mudide, as well as TA Jamie Meindl, for helping with ideation.
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="content has-text-centered">
+                <p>Page built using the <a href="https://github.com/eliahuhorwitz/Academic-project-page-template"
+                        target="_blank">Academic Project Page Template</a>.</p>
+            </div>
+        </div>
+    </footer>
+
+</body>
+
+</html>
