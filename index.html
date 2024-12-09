@@ -26,6 +26,17 @@
     <link rel="stylesheet" href="static/css/bulma.min.css">
     <link rel="stylesheet" href="static/css/index.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-AMS_HTML"></script>
+    <style>
+        .section:nth-of-type(even) {
+            background-color: #f0f0f0;
+            /* Light gray for odd sections */
+        }
+
+        .section:nth-of-type(odd) {
+            background-color: #ffffff;
+            /* White for even sections */
+        }
+    </style>
 </head>
 
 <body>
@@ -44,13 +55,15 @@
             <h2 class="title is-3 has-text-centered">Abstract</h2>
             <p>
                 Mamba, a powerful alternative to Transformers, is a structured state-space sequential model inspired by
-                S4, H3, and gated MLP. Famously introduced by [Albert Gu and Tri Dao](https://arxiv.org/abs/2312.00752),
+                S4, H3, and gated MLP. Famously introduced by <a href="https://arxiv.org/abs/2312.00752">Albert Gu and
+                    Tri Dao</a>,
                 their Mamba model takes constant inference time regardless of the context length. This efficiency boost
                 raises the possibility of much faster scaling laws than transformers, and efficient long-context
                 inference. The Mamba architecture has very high potential, but research into interpretability and safety
                 mechanisms in state space models is lacking. Inspired by Arditi et al., I found a single steering vector
                 in Mistral's open-source instruction-tuned chat-based SSM
-                [codestral-7b](https://huggingface.co/mistralai/Mamba-Codestral-7B-v0.1) based on the improved Mamba2
+                <a href="https://huggingface.co/mistralai/Mamba-Codestral-7B-v0.1">codestral-7b</a> based on the
+                improved Mamba2
                 architecture. Ablating this vector in the residual stream at layer 35 (out of 64 total) reduces refusals
                 to harmful prompts by more than 40%. Adding this vector to the residual stream of harmless prompts
                 causes the model to refuse on 45% of harmless prompts compared to baseline. These results broaden the
@@ -137,7 +150,8 @@
                 similar to Arditi et al.
             </p>
             <p>
-                I used the [codestral-7b](https://huggingface.co/mistralai/Mamba-Codestral-7B-v0.1) open code model
+                I used the <a href="https://huggingface.co/mistralai/Mamba-Codestral-7B-v0.1">codestral-7b</a> open code
+                model
                 released by Mistral in July 2024. It performs on par with other transformer models of the same size on
                 various code benchmarks. Importantly, it has also been instruction fine-tuned and refuses on harmful
                 prompts. It uses Mistral's standard tokenizer, with 64 layers and a token dimension of 4096.
@@ -150,8 +164,8 @@
             <p>
 
                 Mamba is based on the mathematical theory of state space models. State space models are a
-                sequence-to-sequence model similar to RNNs in flavor. They take a continuous input signal $x$ and
-                parameters $A,B,C,$ keep a hidden state $h,$ and have a continuous output $y$ defined by
+                sequence-to-sequence model similar to RNNs in flavor. They take a continuous input signal \(x\) and
+                parameters \(A,B,C,\) keep a hidden state \(h,\) and have a continuous output \(y\) defined by
                 $$
                 \begin{align*}
                 y(t)&=Ch(t),\\
@@ -160,8 +174,9 @@
                 $$
             </p>
             <p>
-                Under this theoretical formulation it's possible to express exactly the form of $y(t)$ given $A,B,C,$
-                and $x$:
+                Under this theoretical formulation it's possible to express exactly the form of \(y(t)\) given
+                \(A,B,C,\)
+                and \(x\):
             </p>
             <p>
                 $$
@@ -169,9 +184,9 @@
                 $$
             </p>
             <p>
-                Specifically, the output sequence $y(t)$ is the convolution of $x(t)$ with the sequence $CA^{t}B.$ Here,
-                matrix exponentiation is defined via exponentiation of the singular values of $A,$ since it is a square
-                matrix mapping from hidden state to hidden state.
+                Specifically, the output sequence \(y(t)\) is the convolution of \(x(t)\) with the sequence \(CA^{t}B.\)
+                Here, matrix exponentiation is defined via exponentiation of the singular values of \(A,\) since it is
+                a square matrix mapping from hidden state to hidden state.
             </p>
             <p>
 
@@ -179,26 +194,29 @@
                 discrete, but have the "length of time" of each token vary dynamically. In this way, less important
                 tokens would have a smaller effect on the hidden state i.e. memory, and more important tokens would
                 persist in the signal for a longer time and have a large effect on, or even reset, the hidden state. The
-                time of each token is denoted $\Delta,$ and a mathematical function $\text{discretize}$ can be used to
-                convert this sequence pair of tokens with durations into a single discrete sequence of distinct $A_{i}$
-                and $B_{i}.$
+                time of each token is denoted \(\Delta,\) and a mathematical function \(\text{discretize}\) can be used
+                to
+                convert this sequence pair of tokens with durations into a single discrete sequence of distinct
+                \(A_{i}\)
+                and \(B_{i}.\)
             </p>
             <p>
 
-                The designers also made various optimizations to improve inference speed. The hidden state dimension $N$
-                is much larger than the token dimension $D,$ so instead of letting $A$ be full-rank the designers made
-                $A$ a diagonal matrix, and called this a "structured state-space sequence model" (S4).
+                The designers also made various optimizations to improve inference speed. The hidden state dimension
+                \(N\)
+                is much larger than the token dimension \(D,\) so instead of letting \(A\) be full-rank the designers
+                made \(A\) a diagonal matrix, and called this a "structured state-space sequence model" (S4).
             </p>
             <p>
-
-                The designers also let $B,C$ vary as functions of the input token, causing the output to attend to
+                The designers also let \(B,C\) vary as functions of the input token, causing the output to attend to
                 varying parts of the hidden state (recall: memory) as the input token changes. They also implemented the
                 convolution with a parallelized scan algorithm, leading to the final "structured selective scanning
                 state-space sequence model" (S6).
             </p>
-            <p>
-                ![[Pasted image 20241018231118.png]]
-            </p>
+            <figure>
+                <img src="figures/s6_algo.png" alt="Figure 1: S6 algorithm.">
+                <figcaption>Figure 1: S6 algorithm.</figcaption>
+            </figure>
             <p>
                 Finally, to build the sequence model Mamba, the designers took inspiration from multi-head transformers
                 and gated MLPs, by
@@ -209,24 +227,15 @@
                 <li>gating using a MLP before downprojecting back into the token dimension</li>
             </ul>
             </p>
-            <p>
-                ![[Pasted image 20241208164553.png]]
-            </p>
+            <figure>
+                <img src="figures/mamba_struct.png" alt="Figure 1: Structure of the Mamba block.">
+                <figcaption>Figure 1: Structure of the Mamba block.</figcaption>
+            </figure>
             <p>
                 Codestral uses the slightly improved Mamba2 architecture, which has been shown to parallelize more
                 performantly.
             </p>
-            <div class="box">
-                <p>\[
-                    \begin{align*}
-                    y(t)&=Ch(t),\\
-                    h'(t)&=Ah(t) + Bx(t).
-                    \end{align*}
-                    \]</p>
-                <p>\[
-                    y(t)=\int_{0}^{t}\left[ CA^{t-i}B \right] x(t)\,dt.
-                    \]</p>
-            </div>
+
         </div>
     </section>
 
@@ -257,7 +266,7 @@
                 each layer in Codestral-7b for each of the first 16 post-prompt tokens. I did this separately for my
                 harmful training dataset, sampled from HarmBench, and my harmless training dataset, sampled from Alpaca.
                 I then took the difference-in-means between these two datasets, and normalized the resulting vectors to
-                have $L_{2}$ norm of 1.
+                have \(L_{2}\) norm of 1.
             </p>
             <p>
                 I then selected the most effective vector by running over the same training harmful datasets. For each
@@ -301,8 +310,9 @@
                 ablation. All test datasets saw 40% reductions or higher in refusal rate.
             </p>
             <figure>
-                <img src="static/images/figure1.png" alt="Figure 1: Refusal rates after ablation">
-                <figcaption>Figure 1: Refusal rates after ablation.</figcaption>
+                <img src="figures/test_refusal_scores.png"
+                    alt="Figure 1: Refusal rates on harmful datasets before and after ablation.">
+                <figcaption>Figure 1: Refusal rates on harmful datasets before and after ablation.</figcaption>
             </figure>
             <p>
                 I also wanted to test whether activation of refusal on harmless prompts was possible. In Figure 2 shown
@@ -311,8 +321,10 @@
                 rate more than tripled after adding the refusal vector, even though responses stayed topical.
             </p>
             <figure>
-                <img src="static/images/figure2.png" alt="Figure 2: Activation of refusal vectors">
-                <figcaption>Figure 2: Activation of refusal vectors.</figcaption>
+                <img src="figures/harmless_refusal_scores.png"
+                    alt="Figure 2: The activation of refusal vectors on harmless prompts induces refusal.">
+                <figcaption>Figure 2: The activation of refusal vectors on harmless prompts induces refusal.
+                </figcaption>
             </figure>
             <p>
                 I examined how the refusal rate changes as the multiple made to the refusal vector (the activation
@@ -320,6 +332,11 @@
                 factors, beginning with no change and ending with the multiple of 2 demonstrated earlier. The refusal
                 rate seems to increase linearly with the activation factor.
             </p>
+            <figure>
+                <img src="figures/harmless_line_refusal_scores.png"
+                    alt="Figure 3: Change in refusal rate with activation factor">
+                <figcaption>Figure 3: Change in refusal rate with activation factor.</figcaption>
+            </figure>
             <p>
                 As many other researchers have found, refusal is strongly correlated with the first token. Naturally I
                 expected the distribution of the first token to change after ablating or activating the refusal vector,
@@ -328,11 +345,23 @@
                 shifted from being dominated by "I" (the most standard first token for refusal) to more evenly
                 distributed across a variety of refusal and acceptance tokens (e.g. "1" and "Response").
             </p>
+            <figure>
+                <img src="figures/harmful_first_token_distribution.png"
+                    alt="Figure 4: First token distribution on harmful prompts before and after ablation.">
+                <figcaption>Figure 4: First token distribution on harmful prompts before and after ablation.
+                </figcaption>
+            </figure>
             <p>
                 I did the same for harmless prompts, and found the opposite pattern. Adding the refusal vector caused
                 the model to respond with "I" 62.5% of the time. Adding a refusal vector only halfway through the model
                 can cause it to reliably output "I" as the first post-prompt token, and that reliably leads to refusal.
             </p>
+            <figure>
+                <img src="figures/harmless_first_token_distribution.png"
+                    alt="Figure 5: First token distribution on harmless prompts before and after activation.">
+                <figcaption>Figure 5: First token distribution on harmless prompts before and after activation.
+                </figcaption>
+            </figure>
         </div>
     </section>
 
@@ -366,15 +395,17 @@
                     ablation into the model weights instead of intervening at that layer.
                 </li>
             </ul>
-            Thanks to Achyuta Rajaram and Anish Mudide, as well as TA Jamie Meindl, for helping with ideation.
+            <p>
+                Thanks to Achyuta Rajaram and Anish Mudide, as well as TA Jamie Meindl, for helping with ideation.
+            </p>
         </div>
     </section>
 
     <footer class="footer">
         <div class="container">
             <div class="content has-text-centered">
-                <p>Page built using the <a href="https://github.com/eliahuhorwitz/Academic-project-page-template"
-                        target="_blank">Academic Project Page Template</a>.</p>
+                <p>Written by Alex Zhao for <a href="https://phillipi.github.io/6.7960/">MIT 6.7960: Graduate Deep
+                        Learning</a>.</p>
             </div>
         </div>
     </footer>
